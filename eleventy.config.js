@@ -4,13 +4,16 @@ import pluginSyntaxHighlight from "@11ty/eleventy-plugin-syntaxhighlight";
 import pluginNavigation from "@11ty/eleventy-navigation";
 import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
 
+import { EleventyRenderPlugin } from "@11ty/eleventy";
+import sass from "sass";
+
 import pluginFilters from "./_config/filters.js";
 
 /** @param {import("@11ty/eleventy").UserConfig} eleventyConfig */
-export default async function(eleventyConfig) {
+export default async function (eleventyConfig) {
 	// Drafts, see also _data/eleventyDataSchema.js
 	eleventyConfig.addPreprocessor("drafts", "*", (data, content) => {
-		if(data.draft && process.env.ELEVENTY_RUN_MODE === "build") {
+		if (data.draft && process.env.ELEVENTY_RUN_MODE === "build") {
 			return false;
 		}
 	});
@@ -19,7 +22,7 @@ export default async function(eleventyConfig) {
 	// For example, `./public/css/` ends up in `_site/css/`
 	eleventyConfig
 		.addPassthroughCopy({
-			"./public/": "/"
+			"./public/": "/",
 		})
 		.addPassthroughCopy("./content/feed/pretty-atom-feed.xsl");
 
@@ -39,9 +42,25 @@ export default async function(eleventyConfig) {
 		toFileDirectory: "dist",
 	});
 
+	eleventyConfig.addPlugin(EleventyRenderPlugin);
+	eleventyConfig.addTemplateFormats("scss");
+	eleventyConfig.addExtension("scss", {
+		outputFileExtension: "css",
+		useLayouts: false,
+		compile: async function (inputContent, inputPath) {
+			// const parsed = path.parse(inputPath);
+
+			const sassResult = sass.compileString(inputContent);
+
+			return async (data) => {
+				return sassResult.css;
+			};
+		},
+	});
+
 	// Official plugins
 	eleventyConfig.addPlugin(pluginSyntaxHighlight, {
-		preAttributes: { tabindex: 0 }
+		preAttributes: { tabindex: 0 },
 	});
 	eleventyConfig.addPlugin(pluginNavigation);
 	eleventyConfig.addPlugin(HtmlBasePlugin);
@@ -54,8 +73,8 @@ export default async function(eleventyConfig) {
 		templateData: {
 			eleventyNavigation: {
 				key: "Feed",
-				order: 4
-			}
+				order: 4,
+			},
 		},
 		collection: {
 			name: "posts",
@@ -67,9 +86,9 @@ export default async function(eleventyConfig) {
 			subtitle: "This is a longer description about your blog.",
 			base: "https://example.com/",
 			author: {
-				name: "Your Name"
-			}
-		}
+				name: "Your Name",
+			},
+		},
 	});
 
 	// Image optimization: https://www.11ty.dev/docs/plugins/image/#eleventy-transform
@@ -86,7 +105,7 @@ export default async function(eleventyConfig) {
 			// e.g. <img loading decoding> assigned on the HTML tag will override these values.
 			loading: "lazy",
 			decoding: "async",
-		}
+		},
 	});
 
 	// Filters
@@ -99,7 +118,7 @@ export default async function(eleventyConfig) {
 	});
 
 	eleventyConfig.addShortcode("currentBuildDate", () => {
-		return (new Date()).toISOString();
+		return new Date().toISOString();
 	});
 
 	// Features to make your build faster (when you need them)
